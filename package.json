@@ -1,0 +1,17 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Chillemi",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "apollo-server": "^4.9.3",
+    "graphql": "^16.12.0",
+    "lodash": "^4.17.23",
+    "uuid": "^13.0.0"
+  }
+}
