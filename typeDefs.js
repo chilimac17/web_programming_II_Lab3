@@ -44,6 +44,7 @@ type Album {
 }
 
 type Mutation {
+
     addArtist(
   stage_name: String!,
   genre: String!,

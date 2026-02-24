@@ -48,8 +48,12 @@ const listeners_collection = await listenersCollection();
         getArtistById: async (_,  args) => {
 
         },
+    },
+    Artist:{},
+    Albums:{},
+    Listeners:{},
 
-
+    Mutation: {
 getListenerById: async (_,  args) => {
 
         },
@@ -83,4 +87,4 @@ searchListenersByLastName: async (_,  args) => {
 
         }
     }
-}
+};
