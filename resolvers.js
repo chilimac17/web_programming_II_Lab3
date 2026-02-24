@@ -3,8 +3,7 @@ import { GraphQLError } from "graphql";
 import {
     artists as artistsCollection,
     albums as albumsCollection,
-    listeners as listenersCollection,
-    albums,
+    listeners as listenersCollection
 } from "./config/mongoCollections.js";
 
 import {v4 as uuidv4} from "uuid";
@@ -48,13 +47,8 @@ const listeners_collection = await listenersCollection();
         getArtistById: async (_,  args) => {
 
         },
-    },
-    Artist:{},
-    Albums:{},
-    Listeners:{},
 
-    Mutation: {
-getListenerById: async (_,  args) => {
+        getListenerById: async (_,  args) => {
 
         },
 
@@ -82,8 +76,54 @@ getArtistsByLabel: async (_,  args) => {
 getListenersBySubscription: async (_,  args) => {
 
         },
+getArtistsSignedBetween: async (_,  args) => {
+
+        },
+getAlbumsByPromoDateRange: async (_,  args) => {
+
+        },
 
 searchListenersByLastName: async (_,  args) => {
+
+        }
+    },
+ 
+
+    Mutation: {
+        addArtist: async (_, args) => {
+            
+        },
+        editArtist: async (_, args) => {
+
+        },
+        removeArtist: async (_, args) => {
+
+        },
+        addListener: async (_, args) => {
+
+        },
+        editListener: async (_, args) => {
+
+        },
+        removeListener: async (_, args) => {
+
+        },
+        addAlbum: async (_, args) => {
+
+        },
+        editAlbum: async (_, args) => {
+
+        },
+        removeAlbum: async (_, args) => {
+
+        },
+        updateAlbumArtist: async (_, args) => {
+
+        },
+        favoriteAlbum: async (_, args) => {
+
+        },
+        unfavoriteAlbum: async (_, args) => {
 
         }
     }
