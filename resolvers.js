@@ -1,5 +1,5 @@
 import { GraphQLError } from "graphql";
-
+import methods from "./helpers.js";
 import {
   artists as artistsCollection,
   albums as albumsCollection,
@@ -44,6 +44,7 @@ export const resolvers = {
     },
 
     getArtistById: async (_, _id) => {
+        _id = methods.errorCheckString(_id);
       const artists_collection = await artistsCollection();
       const artists = await artists_collection.findOne({ _id: _id });
       if (!artists) {
@@ -55,6 +56,7 @@ export const resolvers = {
     },
 
     getListenerById: async (_, _id) => {
+        _id = methods.errorCheckString(_id);
       const listeners_collection = await listenersCollection();
       const listeners = await listeners_collection.findOne({ _id: _id });
       if (!listeners) {
@@ -66,6 +68,7 @@ export const resolvers = {
     },
 
     getAlbumById: async (_, _id) => {
+        _id = methods.errorCheckString(_id);
       const albums_collection = await albumsCollection();
       const albums = await albums_collection.findOne({ _id: _id });
       if (!albums) {
@@ -77,6 +80,7 @@ export const resolvers = {
     },
 
     getAlbumsByArtistId: async (_, artistId) => {
+      artistId = methods.errorCheckString(artistId);
       const artist = await getArtistById(_, { _id: artistId });
       if (!artist) {
         throw new GraphQLError("Artist not found", {
@@ -88,6 +92,7 @@ export const resolvers = {
     },
 
     getListenersByAlbumId: async (_, albumId) => {
+        albumId = methods.errorCheckString(albumId);
       const album = await getAlbumById(_, { _id: albumId });
 
       if (!album) {
@@ -100,6 +105,7 @@ export const resolvers = {
     },
 
     getAlbumsByGenre: async (_, genre) => {
+        genre = methods.errorCheckString(genre);
       const albums_collection = await albums();
       const albums = await albums_collection.find({ genre: genre }).toArray();
 
@@ -113,6 +119,7 @@ export const resolvers = {
     },
 
     getArtistsByLabel: async (_, label) => {
+        label = methods.errorCheckString(label);
       const artists_collection = await artists();
       const artists = await artists_collection.find({ label: label }).toArray();
 
@@ -126,6 +133,7 @@ export const resolvers = {
     },
 
     getListenersBySubscription: async (_, tier) => {
+        tier = methods.errorCheckString(tier);
       const listeners_collection = await listeners();
       const listeners = await listeners_collection
         .find({ subscription_tier: tier })
@@ -162,6 +170,13 @@ export const resolvers = {
       return artists;
     },
     getAlbumsByPromoDateRange: async (_, start, stop) => {
+        //promo_start must be before promo_end.
+        if (start >= stop) {
+            throw new GraphQLError("Invalid promo date range: start date must be before end date", {
+                extensions: { code: "INVALID_PROMO_DATE_RANGE" },
+            });
+        }
+
       const albums_collection = await albums();
       const albums = await albums_collection
         .find({
@@ -214,6 +229,19 @@ export const resolvers = {
       home_city,
       date_signed,
     ) => {
+        stage_name = methods.errorCheckString(stage_name);
+        genre = methods.errorCheckString(genre);
+            label = methods.errorCheckString(label);
+            management_email = methods.checkEmail(management_email);
+            // TODO MC
+           // management_phone = methods.errorCheckPhoneNumber(management_phone);
+           home_city = methods.errorCheckString(home_city);
+         date_signed = methods.errorCheckDates(date_signed);
+
+         
+
+
+
       let newArtist = {
         stage_name: stage_name,
         genre: genre,
@@ -225,6 +253,8 @@ export const resolvers = {
         albums: [],
         numOfAlbums: 0,
       };
+
+      
 
       const artists_collection = await artists();
       const insertInfo = await artists_collection.insertOne(newArtist);
@@ -251,7 +281,19 @@ export const resolvers = {
       home_city,
       date_signed,
     ) => {
+      _id = methods.errorCheckString(_id);
+      stage_name = methods.errorCheckString(stage_name);
+      genre = methods.errorCheckString(genre);
+            label = methods.errorCheckString(label);
+            management_email = methods.checkEmail(management_email);
+            // TODO MC
+           // management_phone = methods.errorCheckPhoneNumber(management_phone);
+           home_city = methods.errorCheckString(home_city);
+         date_signed = methods.errorCheckDates(date_signed);
+
+
       let old_artist = await this.getArtistById(_id);
+      date_signed = methods.errorCheckDates(date_signed);
 
       if (!old_artist) {
         throw new GraphQLError("Artist not found", {
@@ -286,6 +328,7 @@ export const resolvers = {
       return updatedInfo;
     },
     removeArtist: async (_, _id) => {
+        _id = methods.errorCheckString(_id);
       // # Deletes an artist from MongoDB.
       const artists_collection = await artistsCollection();
       const albums_collection = await albumsCollection();
@@ -317,6 +360,32 @@ export const resolvers = {
       date_of_birth,
       subscription_tier,
     ) => {
+        first_name = methods.errorCheckString(first_name);
+        last_name = methods.errorCheckString(last_name);
+        email = methods.checkEmail(email);
+        date_of_birth = methods.errorCheckDates(date_of_birth);
+
+        //A listener must be a reasonable age (use min 13, max 120).
+
+        const currentYear = new Date().getFullYear();
+        const birthYear = new Date(date_of_birth).getFullYear();
+        const age = currentYear - birthYear;
+
+        if (age < 13 || age > 120) {
+            throw new GraphQLError("Invalid date_of_birth: Listener must be between 13 and 120 years old.", {
+                extensions: { code: "INVALID_DATE_OF_BIRTH" },
+            });
+        }
+
+        subscription_tier = methods.errorCheckString(subscription_tier);
+        const validTiers = ["FREE", "PREMIUM"];
+
+        if (!validTiers.includes(subscription_tier)) {
+            throw new GraphQLError("Invalid subscription_tier: Must be either 'FREE' or 'PREMIUM'", {
+                extensions: { code: "INVALID_SUBSCRIPTION_TIER" },
+            });
+        }
+
       const listeners_collection = await listenersCollection();
 
       let newListener = {
@@ -349,6 +418,34 @@ export const resolvers = {
       date_of_birth,
       subscription_tier,
     ) => {
+        _id = methods.errorCheckString(_id);
+        first_name = methods.errorCheckString(first_name);
+        last_name = methods.errorCheckString(last_name);
+        email = methods.checkEmail(email);
+        date_of_birth = methods.errorCheckDates(date_of_birth);
+
+        //A listener must be a reasonable age (use min 13, max 120).
+
+        const currentYear = new Date().getFullYear();
+        const birthYear = new Date(date_of_birth).getFullYear();
+        const age = currentYear - birthYear;
+
+        if (age < 13 || age > 120) {
+            throw new GraphQLError("Invalid date_of_birth: Listener must be between 13 and 120 years old.", {
+                extensions: { code: "INVALID_DATE_OF_BIRTH" },
+            });
+        }
+
+        subscription_tier = methods.errorCheckString(subscription_tier);
+        const validTiers = ["FREE", "PREMIUM"];
+
+        if (!validTiers.includes(subscription_tier)) {
+            throw new GraphQLError("Invalid subscription_tier: Must be either 'FREE' or 'PREMIUM'", {
+                extensions: { code: "INVALID_SUBSCRIPTION_TIER" },
+            });
+        }
+
+
       let old_listener = await this.getListenerById(_id);
 
       if (!old_listener) {
@@ -379,6 +476,7 @@ export const resolvers = {
       return updatedInfo;
     },
     removeListener: async (_, _id) => {
+        _id = methods.errorCheckString(_id);
       const listeners_collection = await listenersCollection();
       const listenerToDelete = await listeners_collection.findOneAndDelete({
         _id: _id,
@@ -402,6 +500,22 @@ export const resolvers = {
       promo_start,
       promo_end,
     ) => {
+        title = methods.errorCheckString(title);
+        genre = methods.errorCheckString(genre);
+        //TODO MC
+        //track_count = methods.errorCheckTrackCount(track_count);
+        artist = methods.errorCheckString(artist);
+        release_date = methods.errorCheckDates(release_date);
+        promo_start = methods.errorCheckDates(promo_start);
+        promo_end = methods.errorCheckDates(promo_end);
+
+        if (promo_start >= promo_end) {
+            throw new GraphQLError("Invalid promo date range: start date must be before end date", {
+                extensions: { code: "INVALID_PROMO_DATE_RANGE" },
+            });
+        }
+
+
       const albums_collection = await albumsCollection();
       let newAlbum = {
         title: title,
@@ -422,6 +536,23 @@ export const resolvers = {
         });
     },
     editAlbum: async (_, _id, title, genre, track_count, artist, release_date, promo_start, promo_end) => {
+        _id = methods.errorCheckString(_id);
+        title = methods.errorCheckString(title);
+        genre = methods.errorCheckString(genre);
+        //TODO MC
+        //track_count = methods.errorCheckTrackCount(track_count);
+        artist = methods.errorCheckString(artist);
+        release_date = methods.errorCheckDates(release_date);
+        promo_start = methods.errorCheckDates(promo_start);
+        promo_end = methods.errorCheckDates(promo_end);
+        
+        if (promo_start >= promo_end) {
+            throw new GraphQLError("Invalid promo date range: start date must be before end date", {
+                extensions: { code: "INVALID_PROMO_DATE_RANGE" },
+            });
+        }
+
+
         let old_album = await this.getAlbumById(_id);
 
         if (!old_album) {
@@ -452,6 +583,7 @@ export const resolvers = {
         return updatedInfo;
     },
     removeAlbum: async (_, _id) => {
+        _id = methods.errorCheckString(_id);
         const albums_collection = await albumsCollection();
         const albumToDelete = await albums_collection.findOneAndDelete({
             _id: _id,
@@ -473,6 +605,8 @@ export const resolvers = {
         return albumToDelete.value;
     },
     updateAlbumArtist: async (_, albumId, artistId) => {
+        albumId = methods.errorCheckString(albumId);
+        artistId = methods.errorCheckString(artistId);
         let album = await getAlbumById(albumId);
         const artist = await getArtistById(artistId);
 
@@ -507,6 +641,9 @@ export const resolvers = {
             
     },
     favoriteAlbum: async (_, listenerId, albumId) => {
+        listenerId = methods.errorCheckString(listenerId);
+        albumId = methods.errorCheckString(albumId);
+
         let listener = await getListenerById(listenerId);
         const album = await getAlbumById(albumId);
 
@@ -530,6 +667,8 @@ export const resolvers = {
         return updatedListener;
     },
     unfavoriteAlbum: async (_, listenerId, albumId) => {
+        listenerId = methods.errorCheckString(listenerId);
+        albumId = methods.errorCheckString(albumId);
         let listener = await getListenerById(listenerId);
 
         if (!listener) {
