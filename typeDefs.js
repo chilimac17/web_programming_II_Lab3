@@ -1,5 +1,32 @@
 export const typeDefs = `#graphql
 
+ type Query {
+    artists: [Artist]                      # Returns an array of all artists.
+listeners: [Listener]                  # Returns an array of all listeners.
+albums: [Album]                        # Returns an array of all albums.
+
+getArtistById(_id: String!): Artist
+getListenerById(_id: String!): Listener
+getAlbumById(_id: String!): Album
+
+getAlbumsByArtistId(artistId: String!): [Album]
+getListenersByAlbumId(albumId: String!): [Listener]   # All listeners who favorited the album
+
+getAlbumsByGenre(genre: String!): [Album]             # Case-insensitive
+getArtistsByLabel(label: String!): [Artist]           # Case-insensitive
+getListenersBySubscription(tier: String!): [Listener] # "FREE" or "PREMIUM" (case-insensitive OK, normalize)
+
+getArtistsSignedBetween(start: String!, end: String!): [Artist]
+# date_signed falls between start and end (inclusive). Must validate both dates.
+
+getAlbumsByPromoDateRange(start: String!, end: String!): [Album]
+# Albums whose promo_start and promo_end fall within the supplied range (inclusive). Must validate both dates.
+
+searchListenersByLastName(searchTerm: String!): [Listener]
+# Returns listeners whose last name contains the searchTerm (case-insensitive).
+  }
+
+
 type Artist {
     _id: String
     stage_name: String
@@ -35,28 +62,6 @@ type Artist {
     promo_end: String
     listenersWhoFavorited: [Listener]
     numOfListenersWhoFavorited: Int
-  }
-
-  type Query {
-    artists: [Artist]
-    listeners: [Listener]
-    albums: [Album]
-
-    getArtistById(_id: String!): Artist
-    getListenerById(_id: String!): Listener
-    getAlbumById(_id: String!): Album
-
-    getAlbumsByArtistId(artistId: String!): [Album]
-    getListenersByAlbumId(albumId: String!): [Listener]
-
-    getAlbumsByGenre(genre: String!): [Album]
-    getArtistsByLabel(label: String!): [Artist]
-    getListenersBySubscription(tier: String!): [Listener]
-
-    getArtistsSignedBetween(start: String!, end: String!): [Artist]
-    getAlbumsByPromoDateRange(start: String!, end: String!): [Album]
-
-    searchListenersByLastName(searchTerm: String!): [Listener]
   }
 
   type Mutation {

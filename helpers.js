@@ -22,7 +22,7 @@ const exportedMethods = {
   //All dates below must be valid MM/DD/YYYY strings.
   p_date = this.errorCheckString(p_date);
 
-   if (!date_signed || isNaN(new Date(date_signed))) {
+   if (!p_date || isNaN(new Date(p_date))) {
         throw new GraphQLError("Invalid date format for date_signed. Please use MM/DD/YYYY format.", {
           extensions: { code: "INVALID_DATE_FORMAT" },
         });

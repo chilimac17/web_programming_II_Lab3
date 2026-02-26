@@ -9,8 +9,10 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 export const resolvers = {
+
+  //Queries********************************************************************
   Query: {
-    artists: async (_, args) => {
+    artists: async () => {
       const artists_collection = await artistsCollection();
       const all_artists = await artists_collection.find({}).toArray();
       if (!all_artists) {
@@ -21,7 +23,19 @@ export const resolvers = {
       return all_artists;
     },
 
-    albums: async (_, args) => {
+
+    listeners: async () => {
+      const listeners_collection = await listenersCollection();
+      const all_listeners = await listeners_collection.find({}).toArray();
+      if (!all_listeners) {
+        throw new GraphQLError("Listener not found", {
+          extensions: { code: "INTERNAL_SERVER_ERROR" },
+        });
+      }
+      return all_listeners;
+    },
+
+    albums: async () => {
       const albums_collection = await albumsCollection();
       const all_albums = await albums_collection.find({}).toArray();
       if (!all_albums) {
@@ -32,21 +46,10 @@ export const resolvers = {
       return all_albums;
     },
 
-    listeners: async (_, args) => {
-      const listeners_collection = await listenersCollection();
-      const all_listeners = await listeners_collection.find({}).toArray();
-      if (!all_listeners) {
-        throw new GraphQLError("Listener not found", {
-          extensions: { code: "LISTENER_NOT_FOUND" },
-        });
-      }
-      return all_listeners;
-    },
-
-    getArtistById: async (_, _id) => {
-        _id = methods.errorCheckString(_id);
+    getArtistById: async (_, args) => {
+        args._id = methods.errorCheckString(args._id);
       const artists_collection = await artistsCollection();
-      const artists = await artists_collection.findOne({ _id: _id });
+      const artists = await artists_collection.findOne({ _id: args._id });
       if (!artists) {
         throw new GraphQLError("Artist not found", {
           extensions: { code: "ARTIST_NOT_FOUND" },
@@ -55,10 +58,10 @@ export const resolvers = {
       return artists;
     },
 
-    getListenerById: async (_, _id) => {
-        _id = methods.errorCheckString(_id);
+    getListenerById: async (_, args) => {
+        args._id = methods.errorCheckString(args._id);
       const listeners_collection = await listenersCollection();
-      const listeners = await listeners_collection.findOne({ _id: _id });
+      const listeners = await listeners_collection.findOne({ _id: args._id });
       if (!listeners) {
         throw new GraphQLError("Listener not found", {
           extensions: { code: "LISTENER_NOT_FOUND" },
@@ -67,10 +70,10 @@ export const resolvers = {
       return listeners;
     },
 
-    getAlbumById: async (_, _id) => {
-        _id = methods.errorCheckString(_id);
+    getAlbumById: async (_, args) => {
+        args._id = methods.errorCheckString(args._id);
       const albums_collection = await albumsCollection();
-      const albums = await albums_collection.findOne({ _id: _id });
+      const albums = await albums_collection.findOne({ _id: args._id });
       if (!albums) {
         throw new GraphQLError("Album not found", {
           extensions: { code: "ALBUM_NOT_FOUND" },
@@ -78,7 +81,6 @@ export const resolvers = {
       }
       return albums;
     },
-
     getAlbumsByArtistId: async (_, artistId) => {
       artistId = methods.errorCheckString(artistId);
       const artist = await getArtistById(_, { _id: artistId });
@@ -218,47 +220,113 @@ export const resolvers = {
     },
   },
 
+
+  //Type Resolvers********************************************************************
+
+     Artist:{
+      albums: async (parentValue) => {
+      const albums_collection = await albumsCollection();
+      return await albums_collection
+        .find({ artist: parentValue._id })
+        .toArray();
+    },
+      numOfAlbums: async (parentValue) => {
+        //console.log("parentValue:");
+       // console.log(parentValue);
+        const albums_collection = await albumsCollection();
+        let numOfAlbums = await albums_collection.countDocuments({
+          artist: parentValue._id
+        })
+
+        return numOfAlbums;
+      },
+  },
+  
+    Listener:{
+      favorite_albums: async (parentValue) => {
+        const albums_collection = await albumsCollection();
+      return await albums_collection
+        .find({ _id: parentValue.favorite_albums._id })
+        .toArray();
+      },
+      numOfFavoriteAlbums: async (parentValue) => {
+const listeners_collection = await listenersCollection();
+  const listener = await listeners_collection.findOne({ _id: parentValue._id });
+  if (!listener) {      
+      throw new GraphQLError("Listener not found", {
+        extensions: { code: "LISTENER_NOT_FOUND" },
+      });
+  }
+  return listener.favorite_albums.length;
+    }
+  },
+  
+
+  Album:{
+    artist: async (parentValue) => {
+      const artists_collection = await artistsCollection();
+      return await artists_collection.findOne({ _id: parentValue.artist });
+    },
+
+      listenersWhoFavorited: async (parentValue) => {
+        const listeners_collection = await listenersCollection();
+      return await listeners_collection
+        .find({ favorite_albums: parentValue._id })
+        .toArray();
+      },
+
+                                                                                                
+      numOfListenersWhoFavorited: async (parentValue) => {
+      const albums_collection = await albumsCollection();
+      const album = await albums_collection.findOne({ _id: parentValue._id });
+  if (!album) {      
+      throw new GraphQLError("Album not found", {
+        extensions: { code: "ALBUM_NOT_FOUND" },
+      });
+  }
+  return album.listenersWhoFavorited.length;
+    },
+  },
+
+  
+ // Mutations********************************************************************
   Mutation: {
     addArtist: async (
       _,
-      stage_name,
-      genre,
-      label,
-      management_email,
-      management_phone,
-      home_city,
-      date_signed,
+      args,
     ) => {
+        let { stage_name, genre, label, management_email, management_phone, home_city, date_signed } = args;
         stage_name = methods.errorCheckString(stage_name);
-        genre = methods.errorCheckString(genre);
-            label = methods.errorCheckString(label);
-            management_email = methods.checkEmail(management_email);
+       genre = methods.errorCheckString(genre);
+         label = methods.errorCheckString(label);
+        management_email = methods.checkEmail(management_email);
             // TODO MC
            // management_phone = methods.errorCheckPhoneNumber(management_phone);
-           home_city = methods.errorCheckString(home_city);
-         date_signed = methods.errorCheckDates(date_signed);
+        home_city = methods.errorCheckString(home_city);
+       date_signed = methods.errorCheckDates(date_signed);
 
          
 
 
 
       let newArtist = {
+        _id: uuidv4(),
         stage_name: stage_name,
         genre: genre,
         label: label,
         management_email: management_email,
         management_phone: management_phone,
         home_city: home_city,
-        date_signed: date_signed,
-        albums: [],
-        numOfAlbums: 0,
+        date_signed: date_signed
       };
 
-      
+      //console.log("newArtist:");
+      //console.log(newArtist);
 
-      const artists_collection = await artists();
+      const artists_collection = await artistsCollection();
       const insertInfo = await artists_collection.insertOne(newArtist);
-
+//console.log("insertInfo:");
+//console.log(insertInfo);
       if (!insertInfo.acknowledged || !insertInfo.insertedId)
         throw new GraphQLError("ERROR: Could Not Add Artist", {
           extensions: { code: "ARTIST_NOT_ADDED" },
@@ -266,7 +334,7 @@ export const resolvers = {
 
       const newId = insertInfo.insertedId.toString();
 
-      let newArtistPost = await this.getArtistById(newId);
+      let newArtistPost = await artists_collection.findOne({ _id: newId });
 
       return newArtistPost;
     },
@@ -389,6 +457,7 @@ export const resolvers = {
       const listeners_collection = await listenersCollection();
 
       let newListener = {
+        _id: uuidv4(),
         first_name: first_name,
         last_name: last_name,
         email: email,
@@ -518,6 +587,7 @@ export const resolvers = {
 
       const albums_collection = await albumsCollection();
       let newAlbum = {
+        _id: uuidv4(),
         title: title,
         genre: genre,
         track_count: track_count,
