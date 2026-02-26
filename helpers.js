@@ -39,7 +39,17 @@ const exportedMethods = {
 
   return p_date;
  },
- checkEmail (p_email) {
+
+ errorCheckDateRange(p_start, p_end) {
+  const startDate = new Date(this.errorCheckDates(p_start));
+  const endDate = new Date(this.errorCheckDates(p_end));
+  if (startDate > endDate) {
+    throw new GraphQLError("ERROR: Start date must be before end date", {
+      extensions: { code: "INVALID_DATE_RANGE" }
+    });
+  }
+},
+ errorCheckEmail (p_email) {
     p_email = this.errorCheckString(p_email);
     let emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(p_email)) {
@@ -50,5 +60,16 @@ const exportedMethods = {
     return p_email
   },
 
+errorCheckPhoneNumber (p_phone) {
+  p_phone = this.errorCheckString(p_phone);
+  const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+  if (!phoneRegex.test(p_phone)) {
+    throw new GraphQLError("ERROR: Invalid Phone Number Format", {
+      extensions: { code: "INVALID_PHONE_FORMAT" }
+    });
+
+  }
+  return p_phone;
+},
 };
 export default exportedMethods;
