@@ -78,6 +78,13 @@ errorCheckTrackCount (p_trackCount) {
       extensions: { code: "INVALID_TRACK_COUNT" }
     });
   }
+
+  if (p_trackCount > 1 && p_trackCount < 200) {
+    throw new GraphQLError("ERROR: Track count must be between 1 and 200", {
+      extensions: { code: "TRACK_COUNT_OUT_OF_RANGE" }
+
+    });
+  }
   return p_trackCount;
 }
 };
