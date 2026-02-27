@@ -1,0 +1,113 @@
+//get all artits
+query {
+  artists {
+    _id
+    stage_name
+    genre
+    label
+    management_email
+    management_phone
+    home_city
+    date_signed
+    numOfAlbums
+  }
+}
+
+
+//addArtist
+mutation {
+  addArtist(
+    stage_name: "cardiB"
+    genre: "rap"
+    label: "RedBottoms"
+    management_email: "cardiiiiB@gmaill.com"
+    management_phone: "582-872-5423"
+    home_city: "new york"
+    date_signed: "06/25/2014"
+  ) 
+  {
+    
+      _id
+      stage_name
+      albums 
+      {
+        _id
+        title
+      }
+      numOfAlbums
+  }
+}
+
+
+
+//editArtist
+mutation {
+  editArtist(
+    _id: "1c6d342a-1316-43d4-9e6c-b27dcd662cc2"
+    management_email: "cardiB@gmaill.com"
+    management_phone: "582-872-4444"
+  ) 
+  {
+    
+      _id
+      stage_name
+      albums 
+      {
+        _id
+        title
+      }
+      numOfAlbums
+  }
+}
+
+
+
+//delete
+
+mutation {
+  removeArtist(_id: "34759fae-c503-4345-85d7-307a1de916b5") {
+    _id
+    stage_name
+    genre
+    label
+    management_email
+    management_phone
+    home_city
+    date_signed
+    numOfAlbums
+  }
+}
+
+
+//addLisenter
+mutation {
+  addListener(
+    first_name: "shanna"
+    last_name: "roberts"
+    email: "shannaROB@gmaill.com"
+    date_of_birth: "06/25/2010"
+    subscription_tier: "FREE"
+  ) 
+  {
+    
+      _id
+      first_name
+      last_name 
+      email
+      date_of_birth
+      subscription_tier
+  }
+}
+
+
+//removeListener
+mutation {
+  removeListener(_id: "27b82d86-9dd4-4920-9979-2e7f9770c19a") {
+    _id
+    first_name
+    last_name
+    email
+    date_of_birth
+    subscription_tier
+  }
+}

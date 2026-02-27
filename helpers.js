@@ -71,5 +71,14 @@ errorCheckPhoneNumber (p_phone) {
   }
   return p_phone;
 },
+
+errorCheckTrackCount (p_trackCount) {
+  if (typeof p_trackCount !== "number" || !Number.isInteger(p_trackCount) || p_trackCount <= 0) {
+    throw new GraphQLError("ERROR: Track count must be a positive integer", {
+      extensions: { code: "INVALID_TRACK_COUNT" }
+    });
+  }
+  return p_trackCount;
+}
 };
 export default exportedMethods;

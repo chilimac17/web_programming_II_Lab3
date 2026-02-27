@@ -257,20 +257,26 @@ export const resolvers = {
   Listener: {
     favorite_albums: async (parentValue) => {
       const albums_collection = await albumsCollection();
+      if (!parentValue.favorite_albums || parentValue.favorite_albums.length === 0) {
+        return [];
+      }
+
       return await albums_collection
-        .find({ _id: parentValue.favorite_albums._id })
+        .find({ _id: { $in: parentValue.favorite_albums }})
         .toArray();
     },
     numOfFavoriteAlbums: async (parentValue) => {
+      if (!parentValue.favorite_albums || parentValue.favorite_albums.length === 0) {
+       return 0;
+      }
       const listeners_collection = await listenersCollection();
-      const listener = await listeners_collection.findOne({
-        _id: parentValue._id,
-      });
+      const listener = await listeners_collection.findOne({ _id: parentValue._id });
       if (!listener) {
         throw new GraphQLError("Listener not found", {
           extensions: { code: "LISTENER_NOT_FOUND" },
         });
       }
+
       return listener.favorite_albums.length;
     },
   },
@@ -346,7 +352,7 @@ export const resolvers = {
       return newArtistPost;
     },
     editArtist: async (_, args) => {
-      const {
+      let {
         _id,
         stage_name,
         genre,
@@ -382,13 +388,12 @@ export const resolvers = {
       if (home_city !== undefined) {
         home_city = methods.errorCheckString(home_city);
       }
-      updateFields.home_city = home_city;
 
       if (date_signed !== undefined) {
         date_signed = methods.errorCheckDates(date_signed);
       }
-
-      let old_artist = await this.getArtistById(_id);
+  const artists_collection = await artistsCollection();
+      let old_artist = await artists_collection.findOne({ _id: _id });
 
       if (!old_artist) {
         throw new GraphQLError("Artist not found", {
@@ -407,7 +412,7 @@ export const resolvers = {
       old_artist.home_city = home_city || old_artist.home_city;
       old_artist.date_signed = date_signed || old_artist.date_signed;
 
-      const artists_collection = await artistsCollection();
+    
 
       const updatedInfo = await artists_collection.findOneAndReplace(
         { _id: _id },
@@ -428,11 +433,13 @@ export const resolvers = {
       const artists_collection = await artistsCollection();
       const albums_collection = await albumsCollection();
 
+      const artist = await artists_collection.findOne({ _id: args._id });
+
       const artistToDelete = await artists_collection.findOneAndDelete({
         _id: args._id,
       });
 
-      if (!artistToDelete.value) {
+      if (!artistToDelete) {
         throw new GraphQLError("Artist not found", {
           extensions: { code: "ARTIST_NOT_FOUND" },
         });
@@ -444,15 +451,15 @@ export const resolvers = {
         { $set: { artist: null } },
       );
 
-      return artistToDelete.value;
+      return artistToDelete;
     },
 
     addListener: async (_, args) => {
-      first_name = methods.errorCheckString(args.first_name);
-      last_name = methods.errorCheckString(args.last_name);
-      email = methods.errorCheckEmail(args.email);
-      date_of_birth = methods.errorCheckDates(args.date_of_birth);
-
+      let first_name = methods.errorCheckString(args.first_name);
+      let last_name = methods.errorCheckString(args.last_name);
+      let email = methods.errorCheckEmail(args.email);
+      let date_of_birth = methods.errorCheckDates(args.date_of_birth);
+      let subscription_tier = methods.errorCheckString(args.subscription_tier);
       //A listener must be a reasonable age (use min 13, max 120).
 
       const currentYear = new Date().getFullYear();
@@ -468,7 +475,7 @@ export const resolvers = {
         );
       }
 
-      subscription_tier = methods.errorCheckString(subscription_tier);
+      
       const validTiers = ["FREE", "PREMIUM"];
 
       if (!validTiers.includes(subscription_tier)) {
@@ -498,11 +505,9 @@ export const resolvers = {
           extensions: { code: "LISTENER_NOT_ADDED" },
         });
 
-      const newId = insertInfo.insertedId.toString();
-
-      let newListenerPost = await this.getListenerById(newId);
-
-      return newListenerPost;
+        let new_Listener = await listeners_collection.findOne({ _id: insertInfo.insertedId });
+        
+      return new_Listener;
     },
     editListener: async (_, args) => {
       let {
@@ -599,19 +604,19 @@ export const resolvers = {
       return updatedInfo;
     },
     removeListener: async (_, args) => {
-      _id = methods.errorCheckString(args._id);
+      args._id = methods.errorCheckString(args._id);
       const listeners_collection = await listenersCollection();
       const listenerToDelete = await listeners_collection.findOneAndDelete({
         _id: args._id,
       });
 
-      if (!listenerToDelete.value) {
+      if (!listenerToDelete) {
         throw new GraphQLError("Listener not found", {
           extensions: { code: "LISTENER_NOT_FOUND" },
         });
       }
 
-      return listenerToDelete.value;
+      return listenerToDelete;
     },
     addAlbum: async (
       _,
@@ -635,9 +640,10 @@ export const resolvers = {
       if(genre !== undefined){
         genre = methods.errorCheckString(genre);
       }
-      //TODO MC
-      //track_count = methods.errorCheckTrackCount(track_count);
       
+      if(track_count !== undefined){
+      track_count = methods.errorCheckTrackCount(track_count);
+      }
       if(artist !== undefined){
 
       artist = methods.errorCheckString(artist);
@@ -681,6 +687,8 @@ export const resolvers = {
         throw new GraphQLError("ERROR: Could Not Add Album", {
           extensions: { code: "ALBUM_NOT_ADDED" },
         });
+
+        return await albums_collection.findOne({ _id: insertInfo.insertedId });
     },
     editAlbum: async (
       _,
@@ -708,8 +716,9 @@ export const resolvers = {
       if(genre !== undefined){
         genre = methods.errorCheckString(genre);
       }
-      //TODO MC
-      //track_count = methods.errorCheckTrackCount(track_count);
+      if(track_count !== undefined){
+      track_count = methods.errorCheckTrackCount(track_count);
+      }
       
       if(artist !== undefined){
 
@@ -771,7 +780,7 @@ export const resolvers = {
         _id: args._id,
       });
 
-      if (!albumToDelete.value) {
+      if (!albumToDelete) {
         throw new GraphQLError("Album not found", {
           extensions: { code: "ALBUM_NOT_FOUND" },
         });
@@ -784,14 +793,16 @@ export const resolvers = {
         { $pull: { favorite_albums: args._id } },
       );
 
-      return albumToDelete.value;
+      return albumToDelete;
     },
     updateAlbumArtist: async (_, args) => {
       args.albumId = methods.errorCheckString(args.albumId);
       args.artistId = methods.errorCheckString(args.artistId);
-      
-      let album = await getAlbumById(args.albumId);
-      const artist = await getArtistById(args.artistId);
+      const albums_collection = await albumsCollection();
+      const artists_collection = await artistsCollection();
+
+      let album = await albums_collection.findOne({ _id: args.albumId });
+      let artist = await artists_collection.findOne({ _id: args.artistId });
 
       if (!album) {
         throw new GraphQLError("Album not found", {
@@ -803,12 +814,12 @@ export const resolvers = {
           extensions: { code: "ARTIST_NOT_FOUND" },
         });
       }
-      album.artist = artistId;
+      album.artist = artist._id;
 
-      const albums_collection = await albumsCollection();
+      
 
       const updatedInfo = await albums_collection.findOneAndReplace(
-        { _id: albumId },
+        { _id: album._id },
         album,
         { returnDocument: "after" },
       );
@@ -823,8 +834,11 @@ export const resolvers = {
       args.listenerId = methods.errorCheckString(args.listenerId);
       args.albumId = methods.errorCheckString(args.albumId);
 
-      let listener = await getListenerById(args.listenerId);
-      const album = await getAlbumById(args.albumId);
+      const listeners_collection = await listenersCollection();
+      const albums_collection = await albumsCollection();
+
+      let listener = await listeners_collection.findOne({ _id: args.listenerId });
+      const album = await albums_collection.findOne({ _id: args.albumId });
 
       if (!listener) {
         throw new GraphQLError("Listener not found", {
@@ -836,19 +850,22 @@ export const resolvers = {
           extensions: { code: "ALBUM_NOT_FOUND" },
         });
       }
-      listener.favorite_albums.push(albumId);
-      const listeners_collection = await listenersCollection();
-      const updatedListener = await listeners_collection.findOneAndUpdate(
-        { _id: listenerId },
-        { $push: { favorite_albums: albumId } },
-        { returnDocument: "after" },
-      );
-      return updatedListener;
+
+ const updatedListener = await listeners_collection.findOneAndUpdate(
+    { _id: args.listenerId },
+    { $addToSet: { favorite_albums: args.albumId } }, 
+    { returnDocument: "after" }
+  );
+
+  return updatedListener;
     },
     unfavoriteAlbum: async (_, args) => {
       args.listenerId = methods.errorCheckString(args.listenerId);
       args.albumId = methods.errorCheckString(args.albumId);
-      let listener = await getListenerById(args.listenerId);
+
+      const listeners_collection = await listenersCollection();
+
+      let listener = await listeners_collection.findOne({ _id: args.listenerId });
 
       if (!listener) {
         throw new GraphQLError("Listener not found", {
@@ -859,13 +876,14 @@ export const resolvers = {
       listener.favorite_albums = listener.favorite_albums.filter(
         (id) => id !== args.albumId,
       );
-      const listeners_collection = await listenersCollection();
-      const updatedListener = await listeners_collection.findOneAndUpdate(
-        { _id: listenerId },
-        { $set: { favorite_albums: listener.favorite_albums } },
-        { returnDocument: "after" },
-      );
-      return updatedListener;
+      
+       const updatedListener = await listeners_collection.findOneAndUpdate(
+    { _id: args.listenerId },
+    { $pull: { favorite_albums: args.albumId } }, // $pull removes the value cleanly
+    { returnDocument: "after" }
+  );
+
+  return updatedListener;
     },
   },
 };
